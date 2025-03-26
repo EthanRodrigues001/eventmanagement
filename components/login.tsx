@@ -1,14 +1,18 @@
+"use client";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { UserAuth } from "@/context/AuthContext";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const { googleSignIn } = UserAuth();
+  const router = useRouter();
 
   const handleGoogleSignIn = async () => {
     try {
       await googleSignIn();
+      router.push("/dash");
     } catch (error) {
       console.error("Google Sign-In Error:", error);
     }

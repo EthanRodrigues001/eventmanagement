@@ -1,10 +1,11 @@
 "use client";
-import { UserAuth } from "@/context/AuthContext";
+
+import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import React from "react";
 
 const Page = () => {
-  const { user, logOut } = UserAuth();
+  const { user, logOut } = useAuth();
   const router = useRouter();
   const handleLogout = async () => {
     try {

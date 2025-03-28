@@ -12,7 +12,7 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     try {
       await googleSignIn();
-      router.push("/dash");
+      router.push("/dashboard");
     } catch (error) {
       console.error("Google Sign-In Error:", error);
     }

@@ -22,9 +22,9 @@ export default function LoginPage() {
   useEffect(() => {
     if (user) {
       if (!user.onboardingCompleted) {
-        router.push("/dash");
+        router.push("/onboarding");
       } else {
-        router.push("/dash");
+        router.push("/dashboard");
       }
     }
   }, [user, router]);

@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { TextEffect } from "@/components/motion-primitives/text-effect";
 import { AnimatedGroup } from "@/components/motion-primitives/animated-group";
+import { VelocityScroll } from "@/components/magicui/scroll-based-velocity";
+import Features from "@/components/features-1";
+import Footer from "@/components/footer";
 
 const transitionVariants = {
   item: {
@@ -48,7 +51,7 @@ export default function HeroSection() {
                   as="h1"
                   className="mt-8 max-w-2xl text-balance text-5xl font-medium md:text-6xl lg:mt-16"
                 >
-                  Build and Ship 10x faster with NS
+                  Simplify Your Event Management
                 </TextEffect>
                 <TextEffect
                   per="line"
@@ -56,11 +59,10 @@ export default function HeroSection() {
                   speedSegment={0.3}
                   delay={0.5}
                   as="p"
-                  className="mt-8 max-w-2xl text-pretty text-lg"
+                  className="mt-8 max-w-2xl text-pretty text-md"
                 >
-                  Tailwindcss highly customizable components for building modern
-                  websites and applications that look and feel the way you mean
-                  it.
+                  Streamline your event planning, coordination, and execution
+                  with our powerful tools and intuitive interface.
                 </TextEffect>
 
                 <AnimatedGroup
@@ -87,7 +89,7 @@ export default function HeroSection() {
                       className="rounded-xl px-5 text-base"
                     >
                       <Link href="#link">
-                        <span className="text-nowrap">Start Building</span>
+                        <span className="text-nowrap">Start Planning</span>
                       </Link>
                     </Button>
                   </div>
@@ -99,7 +101,8 @@ export default function HeroSection() {
                     className="h-10.5 rounded-xl px-5 text-base"
                   >
                     <Link href="#link">
-                      <span className="text-nowrap">Request a demo</span>
+                      <span>View Features</span>
+                      <ChevronRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
                 </AnimatedGroup>
@@ -127,14 +130,14 @@ export default function HeroSection() {
                   <Image
                     className="bg-background aspect-15/8 relative hidden rounded-2xl dark:block"
                     src="/mail2.png"
-                    alt="app screen"
+                    alt="Event management dashboard"
                     width="2700"
                     height="1440"
                   />
                   <Image
                     className="z-2 border-border/25 aspect-15/8 relative rounded-2xl border dark:hidden"
                     src="/mail2-light.png"
-                    alt="app screen"
+                    alt="Event management dashboard"
                     width="2700"
                     height="1440"
                   />
@@ -143,6 +146,7 @@ export default function HeroSection() {
             </AnimatedGroup>
           </div>
         </section>
+
         <section className="bg-background pb-16 pt-16 md:pb-32">
           <div className="group relative m-auto max-w-5xl px-6">
             <div className="absolute inset-0 z-10 flex scale-95 items-center justify-center opacity-0 duration-500 group-hover:scale-100 group-hover:opacity-100">
@@ -233,6 +237,21 @@ export default function HeroSection() {
             </div>
           </div>
         </section>
+
+        {/* Scroll-based velocity section */}
+        <section className="relative bg-background/95">
+          <div className="mx-auto">
+            <VelocityScroll />
+          </div>
+        </section>
+
+        {/* Features section */}
+        <section className="py-20">
+          <Features />
+        </section>
+
+        {/* Footer */}
+        <Footer />
       </main>
     </>
   );

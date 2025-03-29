@@ -49,6 +49,7 @@ export default function ConnectionsPage() {
   >([]);
   const [searching, setSearching] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const socketRef = useRef<any>(null);
 
   // Fetch user connections

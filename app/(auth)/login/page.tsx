@@ -30,8 +30,8 @@ export default function LoginPage() {
   }, [user, router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <Card className="w-full max-w-md shadow-lg dark:bg-gray-800">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br  p-4">
+      <Card className="w-full max-w-md shadow-lg ">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-3xl font-bold">Welcome back</CardTitle>
           <CardDescription>

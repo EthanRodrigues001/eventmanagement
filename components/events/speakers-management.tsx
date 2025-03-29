@@ -35,7 +35,7 @@ interface SpeakersManagementProps {
 }
 
 export function SpeakersManagement({ eventId }: SpeakersManagementProps) {
-  const { user } = useAuth();
+  //   const { user } = useAuth();
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);

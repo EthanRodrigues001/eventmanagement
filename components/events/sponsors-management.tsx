@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { DollarSign, Plus, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/context/AuthContext";
+// import { useAuth } from "@/context/AuthContext";
 import {
   collection,
   query,
@@ -38,7 +38,7 @@ interface SponsorsManagementProps {
 }
 
 export function SponsorsManagement({ eventId }: SponsorsManagementProps) {
-  const { user } = useAuth();
+  //   const { user } = useAuth();
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);

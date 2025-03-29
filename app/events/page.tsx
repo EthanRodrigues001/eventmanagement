@@ -173,7 +173,7 @@ export default function EventsPage() {
         {user && <CreateEventDialog />}
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col md:flex-row gap-8 border-r border-border/25 pb-8">
         {/* Filters - 25% width on desktop */}
         <div className="w-full md:w-1/4 space-y-6">
           <div className="bg-card rounded-lg p-4 shadow">

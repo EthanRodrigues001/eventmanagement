@@ -470,11 +470,11 @@ export default function EventManagePage() {
         </TabsContent>
 
         <TabsContent value="sponsors" className="mt-6">
-          <SponsorsManagement eventId={eventId} />
+          <SponsorsManagement eventId={eventId || ""} />
         </TabsContent>
 
         <TabsContent value="winners" className="mt-6">
-          <WinnersManagement eventId={eventId} />
+          <WinnersManagement eventId={eventId || ""} />
         </TabsContent>
       </Tabs>
     </div>

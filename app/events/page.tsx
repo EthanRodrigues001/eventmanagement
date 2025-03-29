@@ -23,8 +23,13 @@ import type { Event, EventFilters } from "@/lib/types";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CreateEventDialog } from "@/components/events/create-event-dialog";
+import { useAuth } from "@/context/AuthContext";
+import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
+import { db } from "@/lib/auth/firebase";
 
 export default function EventsPage() {
+  const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [filters, setFilters] = useState<EventFilters>({
@@ -44,38 +49,52 @@ export default function EventsPage() {
     try {
       setLoading(true);
 
-      // Build query parameters for filtering
-      const queryParams = new URLSearchParams();
+      // Create a query to get published events
+      const eventsQuery = query(
+        collection(db, "events"),
+        where("isPublished", "==", true),
+        orderBy("createdAt", "desc")
+      );
 
-      if (filters.price[0] > 0) {
-        queryParams.append("minPrice", filters.price[0].toString());
-      }
+      const querySnapshot = await getDocs(eventsQuery);
+      const eventsData: Event[] = [];
 
-      if (filters.price[1] < maxPrice) {
-        queryParams.append("maxPrice", filters.price[1].toString());
-      }
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
 
-      if (filters.categories.length === 1) {
-        queryParams.append("category", filters.categories[0]);
-      }
+        // Format dates for display
+        const formattedEvent: Event = {
+          id: doc.id,
+          title: data.title,
+          description: data.description,
+          logoURL: data.logoURL,
+          bannerURL: data.bannerURL,
+          category: data.category,
+          price: data.price,
+          registrations: data.registrations,
+          eligibility: data.eligibility || "",
+          location: data.location,
+          startDate: data.startDate.toDate().toISOString(),
+          endDate: data.endDate.toDate().toISOString(),
+          sponsorshipGoal: data.sponsorshipGoal,
+          currentSponsorship: data.currentSponsorship,
+          isPublished: data.isPublished,
+          createdBy: data.createdBy,
+          createdAt: data.createdAt.toDate().toISOString(),
+          updatedAt: data.updatedAt.toDate().toISOString(),
+        };
 
-      if (filters.startDate) {
-        queryParams.append("startDate", filters.startDate.toISOString());
-      }
+        eventsData.push(formattedEvent);
+      });
 
-      const response = await fetch(`/api/events?${queryParams.toString()}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch events");
-      }
-
-      const data = await response.json();
-      setEvents(data.events);
+      setEvents(eventsData);
 
       // Find max price for slider
       const highestPrice = Math.max(
-        ...data.events.map((event: Event) => event.price)
+        ...eventsData.map((event) => event.price),
+        1000
       );
+
       if (highestPrice > 0 && highestPrice !== maxPrice) {
         setMaxPrice(highestPrice);
         setFilters((prev) => ({
@@ -84,31 +103,53 @@ export default function EventsPage() {
         }));
       }
 
-      // Apply client-side filtering for multiple categories
-      let filtered = [...data.events];
-
-      if (filters.categories.length > 1) {
-        filtered = filtered.filter((event) =>
-          filters.categories.includes(event.category || "uncategorized")
-        );
-      }
-
-      setFilteredEvents(filtered);
+      // Apply filters
+      applyFilters(eventsData);
     } catch (error) {
       console.error("Error fetching events:", error);
-      toast.error("Error", {
-        description: "Failed to load events. Please try again.",
-      });
+      toast.error("Failed to load events. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  const applyFilters = (eventsToFilter: Event[]) => {
+    let filtered = [...eventsToFilter];
+
+    // Apply price filter
+    filtered = filtered.filter(
+      (event) =>
+        event.price >= filters.price[0] && event.price <= filters.price[1]
+    );
+
+    // Apply category filter
+    if (filters.categories.length > 0) {
+      filtered = filtered.filter((event) =>
+        filters.categories.includes(event.category || "uncategorized")
+      );
+    }
+
+    // Apply date filter
+    if (filters.startDate) {
+      const filterDate = filters.startDate;
+      filtered = filtered.filter((event) => {
+        const eventDate = new Date(event.startDate);
+        return eventDate >= filterDate;
+      });
+    }
+
+    setFilteredEvents(filtered);
+  };
+
   useEffect(() => {
     fetchEvents();
+  }, []);
+
+  useEffect(() => {
+    applyFilters(events);
   }, [filters]);
 
-  const handlePriceChange = (value: [number, number]) => {
+  const handlePriceChange = (value: number[]) => {
     setFilters((prev) => ({ ...prev, price: value as [number, number] }));
   };
 
@@ -127,6 +168,11 @@ export default function EventsPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Events</h1>
+        {user && <CreateEventDialog />}
+      </div>
+
       <div className="flex flex-col md:flex-row gap-8">
         {/* Filters - 25% width on desktop */}
         <div className="w-full md:w-1/4 space-y-6">
@@ -220,8 +266,6 @@ export default function EventsPage() {
 
         {/* Events List - 75% width on desktop */}
         <div className="w-full md:w-3/4">
-          <h1 className="text-3xl font-bold mb-6">Events</h1>
-
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -253,7 +297,8 @@ export default function EventsPage() {
                     <img
                       src={
                         event.bannerURL ||
-                        "/placeholder.svg?height=200&width=400"
+                        "/placeholder.svg?height=200&width=400" ||
+                        "/placeholder.svg"
                       }
                       alt={event.title}
                       className="w-full h-full object-cover"

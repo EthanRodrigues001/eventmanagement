@@ -10,8 +10,19 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { formatDate, formatPrice, formatTime } from "@/lib/utils";
-import type { Event } from "@/lib/types";
+import type { Event, Speaker } from "@/lib/types";
 import { useAuth } from "@/context/AuthContext";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/auth/firebase";
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -19,7 +30,7 @@ export default function EventDetailPage() {
   const { user } = useAuth();
 
   const [event, setEvent] = useState<Event | null>(null);
-  const [speakers, setSpeakers] = useState<any[]>([]);
+  const [speakers, setSpeakers] = useState<Speaker[]>([]);
   const [registrationsCount, setRegistrationsCount] = useState(0);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isOrganizer, setIsOrganizer] = useState(false);
@@ -29,75 +40,118 @@ export default function EventDetailPage() {
   const fetchEventData = async () => {
     try {
       setLoading(true);
+      const eventId = Array.isArray(id) ? id[0] : id;
 
       // Fetch event details
-      const eventResponse = await fetch(`/api/events/${id}`);
+      if (!eventId) {
+        throw new Error("Invalid event ID");
+      }
+      const eventDoc = await getDoc(doc(db, "events", eventId));
 
-      if (!eventResponse.ok) {
-        throw new Error("Failed to fetch event");
+      if (!eventDoc.exists()) {
+        toast.error("Event not found");
+        return;
       }
 
-      const eventData = await eventResponse.json();
-      setEvent(eventData.event);
-      setRegistrationsCount(eventData.registrationsCount);
+      const eventData = eventDoc.data();
+
+      // Format dates for display
+      const formattedEvent: Event = {
+        id: eventDoc.id,
+        title: eventData.title,
+        description: eventData.description,
+        logoURL: eventData.logoURL,
+        bannerURL: eventData.bannerURL,
+        category: eventData.category,
+        price: eventData.price,
+        registrations: eventData.registrations,
+        eligibility: eventData.eligibility || "",
+        location: eventData.location,
+        startDate: eventData.startDate.toDate().toISOString(),
+        endDate: eventData.endDate.toDate().toISOString(),
+        sponsorshipGoal: eventData.sponsorshipGoal,
+        currentSponsorship: eventData.currentSponsorship,
+        isPublished: eventData.isPublished,
+        createdBy: eventData.createdBy,
+        createdAt: eventData.createdAt.toDate().toISOString(),
+        updatedAt: eventData.updatedAt.toDate().toISOString(),
+      };
+
+      setEvent(formattedEvent);
 
       // Check if event is live
       const now = new Date();
-      const startDate = new Date(eventData.event.startDate);
-      const endDate = new Date(eventData.event.endDate);
+      const startDate = new Date(formattedEvent.startDate);
+      const endDate = new Date(formattedEvent.endDate);
       setIsLive(now >= startDate && now <= endDate);
 
       // Fetch speakers
-      const speakersResponse = await fetch(
-        `/api/events/speakers?eventId=${id}`
+      const speakersQuery = query(
+        collection(db, "speakers"),
+        where("eventId", "==", eventId)
       );
 
-      if (speakersResponse.ok) {
-        const speakersData = await speakersResponse.json();
-        setSpeakers(speakersData.speakers);
-      }
+      const speakersSnapshot = await getDocs(speakersQuery);
+      const speakersData: Speaker[] = [];
+
+      speakersSnapshot.forEach((doc) => {
+        const data = doc.data();
+        speakersData.push({
+          id: doc.id,
+          eventId: data.eventId,
+          name: data.name,
+          profession: data.profession,
+        });
+      });
+
+      setSpeakers(speakersData);
+
+      // Get registration count
+      const participantsQuery = query(
+        collection(db, "eventParticipants"),
+        where("eventId", "==", eventId)
+      );
+
+      const participantsSnapshot = await getDocs(participantsQuery);
+      setRegistrationsCount(participantsSnapshot.size);
 
       // Check if user is registered
       if (user) {
-        const registrationResponse = await fetch(
-          `/api/events/check-registration?eventId=${id}&userId=${user?.uid}`
+        const userRegistrationQuery = query(
+          collection(db, "eventParticipants"),
+          where("eventId", "==", eventId),
+          where("userId", "==", user.uid)
         );
 
-        if (registrationResponse.ok) {
-          const registrationData = await registrationResponse.json();
-          setIsRegistered(registrationData.isRegistered);
-        }
+        const userRegistrationSnapshot = await getDocs(userRegistrationQuery);
+        setIsRegistered(!userRegistrationSnapshot.empty);
 
         // Check if user is organizer
-        if (eventData.event.createdBy === user.uid) {
+        if (formattedEvent.createdBy === user.uid) {
           setIsOrganizer(true);
         } else {
-          const organizerResponse = await fetch(
-            `/api/events/organizing-team?eventId=${id}`
+          const organizerQuery = query(
+            collection(db, "organizingTeam"),
+            where("eventId", "==", eventId),
+            where("userId", "==", user.uid)
           );
 
-          if (organizerResponse.ok) {
-            const organizerData = await organizerResponse.json();
-            setIsOrganizer(
-              organizerData.teamMembers.some(
-                (member: any) => member.userId === user.uid
-              )
-            );
-          }
+          const organizerSnapshot = await getDocs(organizerQuery);
+          setIsOrganizer(!organizerSnapshot.empty);
         }
       }
     } catch (error) {
       console.error("Error fetching event data:", error);
-      toast.error("Error", {
-        description: "Failed to load event details. Please try again.",
-      });
+      toast.error("Failed to load event details. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchEventData();
+    if (id) {
+      fetchEventData();
+    }
   }, [id, user]);
 
   const handleRegister = async () => {
@@ -107,40 +161,43 @@ export default function EventDetailPage() {
     }
 
     if (!event?.registrations) {
-      toast.error("Registration Closed", {
-        description: "Registration for this event is currently closed.",
-      });
+      toast.error("Registration for this event is currently closed.");
       return;
     }
 
     try {
-      const response = await fetch("/api/events/participants", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ eventId: id }),
-      });
+      const eventId = Array.isArray(id) ? id[0] : id;
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to register for event");
+      // Check if already registered
+      const userRegistrationQuery = query(
+        collection(db, "eventParticipants"),
+        where("eventId", "==", eventId),
+        where("userId", "==", user.uid)
+      );
+
+      const userRegistrationSnapshot = await getDocs(userRegistrationQuery);
+
+      if (!userRegistrationSnapshot.empty) {
+        toast.error("You are already registered for this event.");
+        return;
       }
+
+      // Add registration
+      await addDoc(collection(db, "eventParticipants"), {
+        eventId,
+        userId: user.uid,
+        registeredAt: serverTimestamp(),
+      });
 
       setIsRegistered(true);
       setRegistrationsCount((prev) => prev + 1);
 
-      toast.success("Registration Successful", {
-        description: "You have successfully registered for the event.",
-      });
+      toast.success("You have successfully registered for the event.");
     } catch (error) {
       console.error("Error registering for event:", error);
-      toast.error("Error", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to register for event",
-      });
+      toast.error(
+        error instanceof Error ? error.message : "Failed to register for event"
+      );
     }
   };
 

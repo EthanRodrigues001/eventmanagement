@@ -41,3 +41,20 @@ export interface EventFilters {
   categories: string[];
   startDate: Date | null;
 }
+
+export type EventCategory =
+  | "technical"
+  | "cultural"
+  | "social"
+  | "academic"
+  | "sports"
+  | "other";
+
+export const EVENT_CATEGORIES: EventCategory[] = [
+  "technical",
+  "cultural",
+  "social",
+  "academic",
+  "sports",
+  "other",
+];

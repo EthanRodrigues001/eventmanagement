@@ -39,6 +39,7 @@ import {
   deleteDoc,
   doc,
   serverTimestamp,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/auth/firebase";
 import type { TeamMember } from "@/lib/types";
@@ -84,7 +85,7 @@ export function OrganizingTeamManagement({
         const data = docSnapshot.data();
 
         userPromises.push(
-          getDoc(doc(db, "users", data.userId)).then((userDoc) => {
+          fetchDoc(doc(db, "users", data.userId)).then((userDoc) => {
             if (userDoc.exists()) {
               const userData = userDoc.data();
               teamData.push({
@@ -126,7 +127,7 @@ export function OrganizingTeamManagement({
         const data = docSnapshot.data();
 
         userPromises.push(
-          getDoc(doc(db, "users", data.userId)).then((userDoc) => {
+          fetchDoc(doc(db, "users", data.userId)).then((userDoc) => {
             if (userDoc.exists()) {
               const userData = userDoc.data();
               participantsData.push({
@@ -373,11 +374,11 @@ export function OrganizingTeamManagement({
 // Helper function to get a document from Firestore
 import { DocumentReference } from "firebase/firestore";
 
-async function getDoc(
+async function fetchDoc(
   docRef: DocumentReference
 ): Promise<{ exists: () => boolean; data: () => any; id: string }> {
   try {
-    const snapshot = await getDoc(docRef);
+    const snapshot = await getDoc(docRef); // This now refers to the Firebase `getDoc`
     return {
       exists: snapshot.exists,
       data: () => snapshot.data(),

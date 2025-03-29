@@ -34,6 +34,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EVENT_CATEGORIES } from "@/lib/types";
+import { PublishButton } from "@/components/events/event-publish-button";
+import { SponsorsManagement } from "@/components/events/sponsors-management";
+import { WinnersManagement } from "@/components/events/winners-management";
+import { Trophy, Image } from "lucide-react";
 
 export default function EventManagePage() {
   const params = useParams();
@@ -53,6 +57,8 @@ export default function EventManagePage() {
     eligibility: "",
     location: "",
     sponsorshipGoal: 0,
+    logoURL: "",
+    bannerURL: "",
   });
 
   // Get the tab from URL or default to "details"
@@ -109,6 +115,8 @@ export default function EventManagePage() {
         eligibility: formattedEvent.eligibility || "",
         location: formattedEvent.location,
         sponsorshipGoal: formattedEvent.sponsorshipGoal,
+        logoURL: formattedEvent.logoURL || "",
+        bannerURL: formattedEvent.bannerURL || "",
       });
     } catch (error) {
       console.error("Error fetching event:", error);
@@ -164,6 +172,8 @@ export default function EventManagePage() {
         eligibility: formData.eligibility,
         location: formData.location,
         sponsorshipGoal: formData.sponsorshipGoal,
+        logoURL: formData.logoURL || null,
+        bannerURL: formData.bannerURL || null,
         updatedAt: new Date(),
       });
 
@@ -180,6 +190,8 @@ export default function EventManagePage() {
           eligibility: formData.eligibility,
           location: formData.location,
           sponsorshipGoal: formData.sponsorshipGoal,
+          logoURL: formData.logoURL || null,
+          bannerURL: formData.bannerURL || null,
           updatedAt: new Date().toISOString(),
         });
       }
@@ -191,7 +203,7 @@ export default function EventManagePage() {
     }
   };
 
-  const handlePublish = async () => {
+  const handlePublishToggle = async () => {
     try {
       setSaving(true);
 
@@ -200,24 +212,30 @@ export default function EventManagePage() {
         return;
       }
 
+      const newPublishState = !event?.isPublished;
+
       await updateDoc(doc(db, "events", eventId), {
-        isPublished: true,
+        isPublished: newPublishState,
         updatedAt: new Date(),
       });
 
-      toast.success("Event published successfully");
+      toast.success(
+        newPublishState
+          ? "Event published successfully"
+          : "Event unpublished successfully"
+      );
 
       // Update local event state
       if (event) {
         setEvent({
           ...event,
-          isPublished: true,
+          isPublished: newPublishState,
           updatedAt: new Date().toISOString(),
         });
       }
     } catch (error) {
-      console.error("Error publishing event:", error);
-      toast.error("Failed to publish event. Please try again.");
+      console.error("Error toggling publish state:", error);
+      toast.error("Failed to update publish state. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -245,7 +263,7 @@ export default function EventManagePage() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-6 space-y-6 my-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{event.title}</h1>
@@ -259,35 +277,39 @@ export default function EventManagePage() {
             registrationsOpen={event.registrations}
             onToggle={handleToggleRegistrations}
           />
-          {!event.isPublished && (
-            <Button onClick={handlePublish} disabled={saving} className="gap-2">
-              {saving ? "Publishing..." : "Publish Event"}
-            </Button>
-          )}
+          <PublishButton
+            eventId={eventId || ""}
+            isPublished={event?.isPublished || false}
+            onPublishChange={handlePublishToggle}
+          />
         </div>
       </div>
 
       <Tabs defaultValue={defaultTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="details" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Event Details</span>
-            <span className="sm:hidden">Details</span>
+            <span className="hidden sm:inline">Details</span>
+          </TabsTrigger>
+          <TabsTrigger value="media" className="flex items-center gap-2">
+            <Image className="h-4 w-4" />
+            <span className="hidden sm:inline">Media</span>
           </TabsTrigger>
           <TabsTrigger value="team" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Organizing Team</span>
-            <span className="sm:hidden">Team</span>
+            <span className="hidden sm:inline">Team</span>
           </TabsTrigger>
           <TabsTrigger value="speakers" className="flex items-center gap-2">
             <Mic2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Event Speakers</span>
-            <span className="sm:hidden">Speakers</span>
+            <span className="hidden sm:inline">Speakers</span>
           </TabsTrigger>
-          <TabsTrigger value="pricing" className="flex items-center gap-2">
+          <TabsTrigger value="sponsors" className="flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
-            <span className="hidden sm:inline">Pricing & Eligibility</span>
-            <span className="sm:hidden">Pricing</span>
+            <span className="hidden sm:inline">Sponsors</span>
+          </TabsTrigger>
+          <TabsTrigger value="winners" className="flex items-center gap-2">
+            <Trophy className="h-4 w-4" />
+            <span className="hidden sm:inline">Winners</span>
           </TabsTrigger>
         </TabsList>
 
@@ -365,6 +387,80 @@ export default function EventManagePage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="media" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Event Media</CardTitle>
+              <CardDescription>
+                Update your event logo and banner
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="logoURL">Logo URL</Label>
+                  <Input
+                    id="logoURL"
+                    name="logoURL"
+                    value={formData.logoURL}
+                    onChange={handleInputChange}
+                    placeholder="Enter logo image URL"
+                  />
+                  {formData.logoURL && (
+                    <div className="mt-2 p-2 border rounded-md">
+                      <p className="text-sm mb-2">Preview:</p>
+                      <div className="h-20 w-20 rounded-full overflow-hidden border">
+                        <img
+                          src={formData.logoURL || "/placeholder.svg"}
+                          alt="Logo preview"
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              "/placeholder.svg?height=80&width=80";
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bannerURL">Banner URL</Label>
+                  <Input
+                    id="bannerURL"
+                    name="bannerURL"
+                    value={formData.bannerURL}
+                    onChange={handleInputChange}
+                    placeholder="Enter banner image URL"
+                  />
+                  {formData.bannerURL && (
+                    <div className="mt-2 p-2 border rounded-md">
+                      <p className="text-sm mb-2">Preview:</p>
+                      <div className="h-40 w-full rounded overflow-hidden border">
+                        <img
+                          src={formData.bannerURL || "/placeholder.svg"}
+                          alt="Banner preview"
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              "/placeholder.svg?height=160&width=600";
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveDetails} disabled={saving}>
+                    {saving ? "Saving..." : "Save Media"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="team" className="mt-6">
           <OrganizingTeamManagement eventId={eventId || ""} />
         </TabsContent>
@@ -373,65 +469,12 @@ export default function EventManagePage() {
           <SpeakersManagement eventId={eventId || ""} />
         </TabsContent>
 
-        <TabsContent value="pricing" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pricing & Eligibility</CardTitle>
-              <CardDescription>
-                Update event pricing and eligibility requirements
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="price">Event Price (₹)</Label>
-                  <Input
-                    id="price"
-                    name="price"
-                    type="number"
-                    min="0"
-                    value={formData.price}
-                    onChange={handleInputChange}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Set to 0 for a free event
-                  </p>
-                </div>
+        <TabsContent value="sponsors" className="mt-6">
+          <SponsorsManagement eventId={eventId} />
+        </TabsContent>
 
-                <div className="space-y-2">
-                  <Label htmlFor="sponsorshipGoal">Sponsorship Goal (₹)</Label>
-                  <Input
-                    id="sponsorshipGoal"
-                    name="sponsorshipGoal"
-                    type="number"
-                    min="0"
-                    value={formData.sponsorshipGoal}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="eligibility">Eligibility</Label>
-                  <Input
-                    id="eligibility"
-                    name="eligibility"
-                    placeholder="e.g., Engineering Students • MBA Students • Undergraduate • Postgraduate"
-                    value={formData.eligibility}
-                    onChange={handleInputChange}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Specify who can participate in this event
-                  </p>
-                </div>
-
-                <div className="flex justify-end">
-                  <Button onClick={handleSaveDetails} disabled={saving}>
-                    {saving ? "Saving..." : "Save Changes"}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="winners" className="mt-6">
+          <WinnersManagement eventId={eventId} />
         </TabsContent>
       </Tabs>
     </div>

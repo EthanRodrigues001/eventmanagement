@@ -3,72 +3,71 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Globe } from "lucide-react";
+import { Globe, EyeOff } from "lucide-react";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/auth/firebase";
 
-interface EventPublishButtonProps {
+interface PublishButtonProps {
   eventId: string;
   isPublished: boolean;
-  onPublish?: () => void;
+  onPublishChange?: (isPublished: boolean) => void;
 }
 
-export function EventPublishButton({
+export function PublishButton({
   eventId,
   isPublished,
-  onPublish,
-}: EventPublishButtonProps) {
-  const [isPublishing, setIsPublishing] = useState(false);
+  onPublishChange,
+}: PublishButtonProps) {
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const handlePublish = async () => {
-    if (isPublished) return;
-
+  const handleTogglePublish = async () => {
     try {
-      setIsPublishing(true);
+      setIsUpdating(true);
 
-      const response = await fetch("/api/events/publish", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ eventId }),
+      // Update event in Firestore
+      await updateDoc(doc(db, "events", eventId), {
+        isPublished: !isPublished,
+        updatedAt: new Date(),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to publish event");
-      }
-
-      toast.success("Event Published", {
-        description: "Your event is now visible to all users.",
+      toast.success(!isPublished ? "Event Published" : "Event Unpublished", {
+        description: !isPublished
+          ? "Your event is now visible to all users"
+          : "Your event is now hidden from public view",
       });
 
-      if (onPublish) {
-        onPublish();
+      if (onPublishChange) {
+        onPublishChange(!isPublished);
       }
     } catch (error) {
-      console.error("Error publishing event:", error);
-      toast.error("Failed to publish event", {
+      console.error("Error toggling publish status:", error);
+      toast.error("Failed to update publish status", {
         description:
-          error instanceof Error ? error.message : "Failed to publish event",
+          error instanceof Error ? error.message : "An unknown error occurred",
       });
     } finally {
-      setIsPublishing(false);
+      setIsUpdating(false);
     }
   };
 
-  if (isPublished) {
-    return (
-      <Button variant="outline" disabled className="gap-2">
-        <Globe className="h-4 w-4" />
-        Published
-      </Button>
-    );
-  }
-
   return (
-    <Button onClick={handlePublish} disabled={isPublishing} className="gap-2">
-      <Globe className="h-4 w-4" />
-      {isPublishing ? "Publishing..." : "Publish Event"}
+    <Button
+      variant={isPublished ? "outline" : "default"}
+      onClick={handleTogglePublish}
+      disabled={isUpdating}
+      className="gap-2"
+    >
+      {isPublished ? (
+        <>
+          <EyeOff className="h-4 w-4" />
+          {isUpdating ? "Updating..." : "Unpublish"}
+        </>
+      ) : (
+        <>
+          <Globe className="h-4 w-4" />
+          {isUpdating ? "Publishing..." : "Publish"}
+        </>
+      )}
     </Button>
   );
 }

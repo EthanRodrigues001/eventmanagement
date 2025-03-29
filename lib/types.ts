@@ -58,3 +58,69 @@ export const EVENT_CATEGORIES: EventCategory[] = [
   "sports",
   "other",
 ];
+
+export interface Sponsor {
+  id: string;
+  eventId: string;
+  name: string;
+  phoneNo: string;
+  logoURL: string | null;
+  amount: number;
+  addedAt: string;
+}
+
+export interface Winner {
+  id: string;
+  eventId: string;
+  userId: string;
+  position: string;
+  displayName?: string;
+  photoURL?: string | null;
+  addedAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  userId: string;
+  receiverId?: string;
+  eventId?: string;
+  message: string;
+  sentAt: string;
+  isRead?: boolean;
+}
+
+export interface Connection {
+  id: string;
+  userId: string;
+  displayName: string;
+  photoURL: string | null;
+  email: string;
+  lastMessage?: string;
+  lastMessageTime?: string;
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  earnedAt: string;
+}
+
+export interface Certificate {
+  id: string;
+  name: string;
+  eventId: string;
+  userId: string;
+  position: string;
+  imageUrl: string;
+  earnedAt: string;
+}
+
+export const WINNER_POSITIONS = [
+  "First Place",
+  "Second Place",
+  "Third Place",
+  "Honorable Mention",
+  "Participation",
+];

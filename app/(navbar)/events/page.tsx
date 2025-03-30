@@ -39,6 +39,7 @@ export default function EventsPage() {
   });
   const [maxPrice, setMaxPrice] = useState(5000);
   const [loading, setLoading] = useState(true);
+  const [suggestedEvents] = useState<Event[]>([]);
 
   // Get unique categories from events
   const categories = Array.from(
@@ -166,14 +167,19 @@ export default function EventsPage() {
     setFilters((prev) => ({ ...prev, startDate: date || null }));
   };
 
+  const handleRegister = (eventId: string) => {
+    // Placeholder for registration logic
+    toast.success(`Successfully registered for event ${eventId}!`);
+  };
+
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-8 px-4 pt-36">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Events</h1>
         {user && <CreateEventDialog />}
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8 border-r border-border/25 pb-8">
+      <div className="flex flex-col md:flex-row gap-8 pb-8">
         {/* Filters - 25% width on desktop */}
         <div className="w-full md:w-1/4 space-y-6">
           <div className="bg-card rounded-lg p-4 shadow">
@@ -336,6 +342,58 @@ export default function EventsPage() {
           )}
         </div>
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Event Suggestions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!user ? (
+            <div className="rounded-lg border p-4 text-center">
+              <p className="text-muted-foreground">
+                Please log in to see event suggestions
+              </p>
+            </div>
+          ) : loading ? (
+            Array(3)
+              .fill(0)
+              .map((_, i) => (
+                <div key={i} className="rounded-lg border p-4">
+                  <Skeleton className="h-6 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ))
+          ) : suggestedEvents.length > 0 ? (
+            suggestedEvents.map((event) => (
+              <div key={event.id} className="rounded-lg border p-4">
+                <h3 className="text-lg font-medium">{event.title}</h3>
+                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                  {event.description}
+                </p>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    {formatDate(event.startDate)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRegister(event.id)}
+                    disabled={!event.registrations}
+                  >
+                    {event.registrations ? "Register" : "Closed"}
+                  </Button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-lg border p-4 text-center">
+              <p className="text-muted-foreground">
+                No event suggestions available
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import type React from "react";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -22,7 +22,6 @@ import { ToggleRegistrationsButton } from "@/components/events/toggle-registrati
 import { SpeakersManagement } from "@/components/events/speakers-management";
 import { OrganizingTeamManagement } from "@/components/events/organizing-team-management";
 import { Users, Mic2, Settings, DollarSign } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/auth/firebase";
 import type { Event } from "@/lib/types";
@@ -41,9 +40,7 @@ import { Trophy, Image } from "lucide-react";
 
 export default function EventManagePage() {
   const params = useParams();
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
   const eventId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [event, setEvent] = useState<Event | null>(null);

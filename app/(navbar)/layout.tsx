@@ -1,4 +1,6 @@
-import Navbarlayout from "@/components/navbar/navbar-layout";
+// import Navbarlayout from "@/components/navbar/navbar-layout";
+
+import Navbar from "@/components/navbar";
 
 export default function NavbarLayout({
   children,
@@ -7,7 +9,10 @@ export default function NavbarLayout({
 }) {
   return (
     <>
-      <Navbarlayout>{children}</Navbarlayout>
+      {/* <Navbarlayout> */}
+      <Navbar />
+      {children}
+      {/* </Navbarlayout> */}
     </>
   );
 }

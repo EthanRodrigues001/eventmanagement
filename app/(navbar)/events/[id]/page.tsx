@@ -23,6 +23,8 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/auth/firebase";
+import { EventChatbot } from "@/components/events/event-chatbot";
+import { EventComments } from "@/components/events/event-comments";
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -237,6 +239,8 @@ export default function EventDetailPage() {
     new Date(event.startDate).getTime() - 2 * 24 * 60 * 60 * 1000
   );
 
+  const eventId = Array.isArray(id) ? id[0] : id;
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Banner */}
@@ -248,7 +252,7 @@ export default function EventDetailPage() {
           className="object-cover opacity-90"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-transparent">
+        <div className="pt-16 absolute inset-0 bg-gradient-to-b from-black/50 to-transparent">
           <div className="container mx-auto px-4 py-6 text-white">
             <div className="flex justify-between items-start">
               <div className="mt-4">
@@ -630,10 +634,20 @@ export default function EventDetailPage() {
                     </p>
                   </div>
                 )}
+
+                {/* Add Event Chatbot */}
+                <div className="mt-6 pt-6 border-t">
+                  <EventChatbot eventId={eventId || ""} event={event} />
+                </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Comments Section */}
+      <div className="container mx-auto px-4 py-6">
+        <EventComments eventId={eventId || ""} />
       </div>
     </div>
   );

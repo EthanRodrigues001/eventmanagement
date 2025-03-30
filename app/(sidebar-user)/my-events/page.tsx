@@ -19,7 +19,7 @@ import {
 import { db } from "@/lib/auth/firebase";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Header } from "@/components/header";
+// import { Header } from "@/components/header";
 import { EventDetail } from "@/components/event-detail";
 
 export default function MyEventsPage() {
@@ -206,7 +206,7 @@ export default function MyEventsPage() {
 
   return (
     <div>
-      <Header searchPlaceholder="Search events..." />
+      {/* <Header searchPlaceholder="Search events..." /> */}
 
       <div className="container mx-auto py-6">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

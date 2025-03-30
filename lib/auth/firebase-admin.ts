@@ -1,6 +1,5 @@
-"use server";
-import { initializeApp, cert, getApps, getApp } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
+// "use server";
+import admin from "firebase-admin";
 
 const firebaseConfig = {
   projectId: process.env.FIREBASE_PROJECT_ID,
@@ -8,13 +7,13 @@ const firebaseConfig = {
   clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
 };
 
-export const initAdmin = () => {
-  if (!getApps().length) {
-    initializeApp({
-      credential: cert(firebaseConfig),
-    });
-  }
-};
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(firebaseConfig),
+  });
+}
 
-// Export Firebase Admin services
-export const adminAuth = getAuth(getApp());
+const db = admin.firestore();
+const adminAuth = admin.auth();
+
+export { db, adminAuth };

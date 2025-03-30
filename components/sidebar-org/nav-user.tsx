@@ -81,6 +81,10 @@ export function NavUser() {
               <Sparkles />
               Organize Events
             </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Sparkles />
+              Manage Account
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logOut}>
               <LogOut />

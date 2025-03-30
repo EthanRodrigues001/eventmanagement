@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { DollarSign, Plus, Trash2 } from "lucide-react";
+import { DollarSign, Plus, Trash2, Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 // import { useAuth } from "@/context/AuthContext";
 import {
@@ -32,20 +32,29 @@ import {
 import { db } from "@/lib/auth/firebase";
 import type { Sponsor } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
+import sponsorsData from "@/lib/db/sponsors.json";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface SponsorsManagementProps {
   eventId: string;
 }
 
 export function SponsorsManagement({ eventId }: SponsorsManagementProps) {
-  //   const { user } = useAuth();
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [sponsorshipGoal, setSponsorshipGoal] = useState(0);
   const [currentSponsorship, setCurrentSponsorship] = useState(0);
-  const [remainingSponsorship, setRemainingSponsorship] = useState(0);
-  const [sponsorshipProgress, setSponsorshipProgress] = useState(0);
+
+  const [suggestedSponsor, setSuggestedSponsor] = useState<any | null>(null);
+  const [showSuggestedDialog, setShowSuggestedDialog] = useState(false);
 
   const [newSponsor, setNewSponsor] = useState({
     name: "",
@@ -60,9 +69,12 @@ export function SponsorsManagement({ eventId }: SponsorsManagementProps) {
 
       // Get event data to get sponsorship goal
       const eventDoc = await getDoc(doc(db, "events", eventId));
+      let eventData;
       if (eventDoc.exists()) {
-        const eventData = eventDoc.data();
+        eventData = eventDoc.data();
         setSponsorshipGoal(eventData.sponsorshipGoal || 0);
+      } else {
+        eventData = {};
       }
 
       // Get sponsors
@@ -93,26 +105,36 @@ export function SponsorsManagement({ eventId }: SponsorsManagementProps) {
       setSponsors(sponsorsData);
       setCurrentSponsorship(totalSponsorship);
 
-      // Calculate remaining and progress
-      const remaining = Math.max(0, sponsorshipGoal - totalSponsorship);
-      setRemainingSponsorship(remaining);
-
-      const progress =
-        sponsorshipGoal > 0
-          ? Math.min(100, (totalSponsorship / sponsorshipGoal) * 100)
-          : 0;
-      setSponsorshipProgress(progress);
-
       // Update event with current sponsorship amount
       await updateDoc(doc(db, "events", eventId), {
         currentSponsorship: totalSponsorship,
         updatedAt: new Date(),
       });
+
+      // Get suggested sponsor based on event category
+      getSuggestedSponsor(eventData.category);
     } catch (error) {
       console.error("Error fetching sponsors:", error);
       toast.error("Failed to load sponsors. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getSuggestedSponsor = (category: string) => {
+    // Filter sponsors by category
+    const matchingSponsors = sponsorsData.filter(
+      (sponsor) => sponsor.category.toLowerCase() === category.toLowerCase()
+    );
+
+    if (matchingSponsors.length > 0) {
+      // Get a random sponsor from matching ones
+      const randomIndex = Math.floor(Math.random() * matchingSponsors.length);
+      setSuggestedSponsor(matchingSponsors[randomIndex]);
+    } else {
+      // If no matching sponsors, get a random one
+      const randomIndex = Math.floor(Math.random() * sponsorsData.length);
+      setSuggestedSponsor(sponsorsData[randomIndex]);
     }
   };
 
@@ -189,6 +211,36 @@ export function SponsorsManagement({ eventId }: SponsorsManagementProps) {
     }
   };
 
+  const handleAddSuggestedSponsor = async () => {
+    if (!suggestedSponsor) return;
+
+    try {
+      setAdding(true);
+
+      await addDoc(collection(db, "sponsors"), {
+        eventId,
+        name: suggestedSponsor.name,
+        phoneNo: suggestedSponsor.phoneNo,
+        logoURL: suggestedSponsor.logoURL || null,
+        amount: suggestedSponsor.amount,
+        addedAt: serverTimestamp(),
+      });
+
+      toast.success(`${suggestedSponsor.name} has been added as a sponsor.`);
+      setShowSuggestedDialog(false);
+
+      // Refresh sponsors list
+      fetchSponsors();
+    } catch (error) {
+      console.error("Error adding suggested sponsor:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to add sponsor"
+      );
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -211,16 +263,121 @@ export function SponsorsManagement({ eventId }: SponsorsManagementProps) {
               Current: ₹{currentSponsorship.toLocaleString()}
             </span>
           </div>
-          <Progress value={sponsorshipProgress} className="h-2" />
+          <Progress
+            value={
+              sponsorshipGoal > 0
+                ? Math.min(100, (currentSponsorship / sponsorshipGoal) * 100)
+                : 0
+            }
+            className="h-2"
+          />
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">
-              {sponsorshipProgress.toFixed(0)}% Complete
+              {(sponsorshipGoal > 0
+                ? Math.min(100, (currentSponsorship / sponsorshipGoal) * 100)
+                : 0
+              ).toFixed(0)}
+              % Complete
             </span>
             <span className="text-muted-foreground">
-              Remaining: ₹{remainingSponsorship.toLocaleString()}
+              Remaining: ₹
+              {Math.max(
+                0,
+                sponsorshipGoal - currentSponsorship
+              ).toLocaleString()}
             </span>
           </div>
         </div>
+
+        {/* Suggested Sponsor */}
+        {suggestedSponsor && (
+          <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h3 className="font-medium">Suggested Sponsor</h3>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSuggestedDialog(true)}
+              >
+                View Details
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Suggested Sponsor Dialog */}
+        <Dialog
+          open={showSuggestedDialog}
+          onOpenChange={setShowSuggestedDialog}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Suggested Sponsor</DialogTitle>
+              <DialogDescription>
+                Contact this sponsor before adding them to your event.
+              </DialogDescription>
+            </DialogHeader>
+
+            {suggestedSponsor && (
+              <div className="space-y-4 py-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage
+                      src={suggestedSponsor.logoURL}
+                      alt={suggestedSponsor.name}
+                    />
+                    <AvatarFallback>
+                      {suggestedSponsor.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-bold text-lg">
+                      {suggestedSponsor.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Category: {suggestedSponsor.category}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Contact:</span>
+                    <span>{suggestedSponsor.phoneNo}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Estimated Amount:</span>
+                    <span className="text-green-600 font-medium">
+                      ₹{suggestedSponsor.amount.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-md text-sm">
+                  <p className="text-amber-800 dark:text-amber-300">
+                    Please contact the sponsor before adding them to confirm
+                    their participation and sponsorship amount.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowSuggestedDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleAddSuggestedSponsor} disabled={adding}>
+                {adding ? "Adding..." : "Add to Event"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Add new sponsor form */}
         <form onSubmit={handleAddSponsor} className="space-y-4">

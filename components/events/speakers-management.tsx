@@ -14,9 +14,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Mic2, Plus, Trash2 } from "lucide-react";
+import { Mic2, Plus, Trash2, Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useAuth } from "@/context/AuthContext";
+
 import {
   collection,
   query,
@@ -26,27 +26,49 @@ import {
   deleteDoc,
   doc,
   serverTimestamp,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/auth/firebase";
 import type { Speaker } from "@/lib/types";
+import speakersData from "@/lib/db/speakers.json";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface SpeakersManagementProps {
   eventId: string;
 }
 
 export function SpeakersManagement({ eventId }: SpeakersManagementProps) {
-  //   const { user } = useAuth();
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [eventCategory, setEventCategory] = useState("");
+  const [suggestedSpeaker, setSuggestedSpeaker] = useState<any | null>(null);
+  const [showSuggestedDialog, setShowSuggestedDialog] = useState(false);
+
   const [newSpeaker, setNewSpeaker] = useState({
     name: "",
     profession: "",
+    phoneNo: "",
   });
 
   const fetchSpeakers = async () => {
     try {
       setLoading(true);
+
+      // Get event data to get category
+      const eventDoc = await getDoc(doc(db, "events", eventId));
+      let eventData: any;
+      if (eventDoc.exists()) {
+        eventData = eventDoc.data();
+        setEventCategory(eventData.category || "");
+      }
 
       const speakersQuery = query(
         collection(db, "speakers"),
@@ -67,11 +89,33 @@ export function SpeakersManagement({ eventId }: SpeakersManagementProps) {
       });
 
       setSpeakers(speakersData);
+
+      // Get suggested speaker based on event category
+      if (eventData) {
+        getSuggestedSpeaker(eventData.category);
+      }
     } catch (error) {
       console.error("Error fetching speakers:", error);
       toast.error("Failed to load speakers. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getSuggestedSpeaker = (category: string) => {
+    // Filter speakers by category
+    const matchingSpeakers = speakersData.filter(
+      (speaker) => speaker.category.toLowerCase() === category.toLowerCase()
+    );
+
+    if (matchingSpeakers.length > 0) {
+      // Get a random speaker from matching ones
+      const randomIndex = Math.floor(Math.random() * matchingSpeakers.length);
+      setSuggestedSpeaker(matchingSpeakers[randomIndex]);
+    } else {
+      // If no matching speakers, get a random one
+      const randomIndex = Math.floor(Math.random() * speakersData.length);
+      setSuggestedSpeaker(speakersData[randomIndex]);
     }
   };
 
@@ -99,6 +143,7 @@ export function SpeakersManagement({ eventId }: SpeakersManagementProps) {
         eventId,
         name: newSpeaker.name,
         profession: newSpeaker.profession,
+        phoneNo: newSpeaker.phoneNo || "",
         createdAt: serverTimestamp(),
       });
 
@@ -108,12 +153,42 @@ export function SpeakersManagement({ eventId }: SpeakersManagementProps) {
       setNewSpeaker({
         name: "",
         profession: "",
+        phoneNo: "",
       });
 
       // Refresh speakers list
       fetchSpeakers();
     } catch (error) {
       console.error("Error adding speaker:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to add speaker"
+      );
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleAddSuggestedSpeaker = async () => {
+    if (!suggestedSpeaker) return;
+
+    try {
+      setAdding(true);
+
+      await addDoc(collection(db, "speakers"), {
+        eventId,
+        name: suggestedSpeaker.name,
+        profession: suggestedSpeaker.profession,
+        phoneNo: suggestedSpeaker.phoneNo || "",
+        createdAt: serverTimestamp(),
+      });
+
+      toast.success(`${suggestedSpeaker.name} has been added as a speaker.`);
+      setShowSuggestedDialog(false);
+
+      // Refresh speakers list
+      fetchSpeakers();
+    } catch (error) {
+      console.error("Error adding suggested speaker:", error);
       toast.error(
         error instanceof Error ? error.message : "Failed to add speaker"
       );
@@ -153,6 +228,91 @@ export function SpeakersManagement({ eventId }: SpeakersManagementProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Suggested Speaker */}
+        {suggestedSpeaker && (
+          <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h3 className="font-medium">Suggested Speaker</h3>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSuggestedDialog(true)}
+              >
+                View Details
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Suggested Speaker Dialog */}
+        <Dialog
+          open={showSuggestedDialog}
+          onOpenChange={setShowSuggestedDialog}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Suggested Speaker</DialogTitle>
+              <DialogDescription>
+                Contact this speaker before adding them to your event.
+              </DialogDescription>
+            </DialogHeader>
+
+            {suggestedSpeaker && (
+              <div className="space-y-4 py-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarFallback>
+                      {suggestedSpeaker.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-bold text-lg">
+                      {suggestedSpeaker.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {suggestedSpeaker.profession}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Contact:</span>
+                    <span>{suggestedSpeaker.phoneNo}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Category:</span>
+                    <span>{suggestedSpeaker.category}</span>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-md text-sm">
+                  <p className="text-amber-800 dark:text-amber-300">
+                    Please contact the speaker before adding them to confirm
+                    their availability and interest in participating in your
+                    event.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowSuggestedDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleAddSuggestedSpeaker} disabled={adding}>
+                {adding ? "Adding..." : "Add to Event"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Add new speaker form */}
         <form onSubmit={handleAddSpeaker} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -177,6 +337,18 @@ export function SpeakersManagement({ eventId }: SpeakersManagementProps) {
               />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phoneNo">Phone Number</Label>
+            <Input
+              id="phoneNo"
+              name="phoneNo"
+              placeholder="Enter phone number"
+              value={newSpeaker.phoneNo}
+              onChange={handleInputChange}
+            />
+          </div>
+
           <Button type="submit" disabled={adding} className="gap-2">
             <Plus className="h-4 w-4" />
             {adding ? "Adding..." : "Add Speaker"}
@@ -211,9 +383,11 @@ export function SpeakersManagement({ eventId }: SpeakersManagementProps) {
                     </Avatar>
                     <div>
                       <p className="font-medium">{speaker.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {speaker.profession}
-                      </p>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {speaker.profession}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <Button

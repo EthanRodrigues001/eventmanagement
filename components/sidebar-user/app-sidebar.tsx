@@ -59,6 +59,10 @@ const data = {
           title: "Connections",
           url: "/my-events/connections",
         },
+        {
+          title: "Social Media",
+          url: "/my-events/social",
+        },
       ],
     },
   ],

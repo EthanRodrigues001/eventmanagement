@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useState, useEffect, useRef } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,7 +27,6 @@ import { db } from "@/lib/auth/firebase";
 import { toast } from "sonner";
 import { io } from "socket.io-client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Header } from "@/components/header";
 
 export default function ConnectionsPage() {
   const { user } = useAuth();
@@ -48,6 +46,7 @@ export default function ConnectionsPage() {
     }[]
   >([]);
   const [searching, setSearching] = useState(false);
+  const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const socketRef = useRef<any>(null);
@@ -124,6 +123,42 @@ export default function ConnectionsPage() {
       toast.error("Failed to load connections. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch suggested users
+  const fetchSuggestedUsers = async () => {
+    if (!user) return;
+
+    try {
+      // Get all users except current user and existing connections
+      const usersQuery = query(collection(db, "users"), limit(4));
+
+      const usersSnapshot = await getDocs(usersQuery);
+      const usersData: any[] = [];
+      const connectionUserIds = connections.map((c) => c.userId);
+
+      usersSnapshot.forEach((doc) => {
+        // Skip current user and existing connections
+        if (doc.id === user.uid || connectionUserIds.includes(doc.id)) return;
+
+        const data = doc.data();
+        usersData.push({
+          id: doc.id,
+          name: data.displayName || "Unknown",
+          avatar: data.photoURL || "",
+          event: [
+            "Hackathon 2025",
+            "Tech Conference",
+            "Design Workshop",
+            "AI Summit",
+          ][Math.floor(Math.random() * 4)],
+        });
+      });
+
+      setSuggestedUsers(usersData.slice(0, 4));
+    } catch (error) {
+      console.error("Error fetching suggested users:", error);
     }
   };
 
@@ -211,6 +246,13 @@ export default function ConnectionsPage() {
   useEffect(() => {
     fetchConnections();
   }, [user]);
+
+  // Fetch suggested users after connections are loaded
+  useEffect(() => {
+    if (connections.length > 0) {
+      fetchSuggestedUsers();
+    }
+  }, [connections]);
 
   // Fetch messages when selected connection changes
   useEffect(() => {
@@ -396,81 +438,82 @@ export default function ConnectionsPage() {
   };
 
   return (
-    <div>
-      <Header searchPlaceholder="Find connections" />
+    <div className="container p-4 md:p-6">
+      {/* <PageHeader title="Connections" searchPlaceholder="Find connections" /> */}
 
-      <div className="container mx-auto py-6">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <Card className="md:col-span-1">
-            <CardHeader>
-              <CardTitle>Connections</CardTitle>
-              <div className="relative mt-2">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search users..."
-                  className="pl-8 pr-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-9 px-3"
-                  onClick={handleSearch}
-                  disabled={searching || !searchQuery.trim()}
-                >
-                  {searching ? "..." : "Search"}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Search Results */}
-              {searchResults.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="text-sm font-medium mb-2">Search Results</h3>
-                  <div className="space-y-2">
-                    {searchResults.map((result) => (
-                      <div
-                        key={result.id}
-                        className="flex items-center justify-between gap-3 rounded-lg p-2 hover:bg-accent"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage
-                              src={result.photoURL || ""}
-                              alt={result.displayName}
-                            />
-                            <AvatarFallback>
-                              {result.displayName.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="overflow-hidden">
-                            <p className="text-sm font-medium">
-                              {result.displayName}
-                            </p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {result.email}
-                            </p>
-                          </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+        {/* Connections List */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-2">
+            <CardTitle>Connections</CardTitle>
+            <div className="relative mt-2">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search users..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-9 px-3"
+                onClick={handleSearch}
+                disabled={searching || !searchQuery.trim()}
+              >
+                {searching ? "..." : "Search"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="h-[calc(100vh-280px)] overflow-auto">
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <div className="mb-4">
+                <h3 className="text-sm font-medium mb-2">Search Results</h3>
+                <div className="space-y-1">
+                  {searchResults.map((result) => (
+                    <div
+                      key={result.id}
+                      className="flex items-center justify-between gap-3 rounded-lg p-2 hover:bg-accent"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage
+                            src={result.photoURL || ""}
+                            alt={result.displayName}
+                          />
+                          <AvatarFallback>
+                            {result.displayName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="overflow-hidden">
+                          <p className="text-sm font-medium">
+                            {result.displayName}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {result.email}
+                          </p>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            handleAddConnection(result.id, result.displayName)
-                          }
-                        >
-                          <UserPlus className="h-4 w-4" />
-                        </Button>
                       </div>
-                    ))}
-                  </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          handleAddConnection(result.id, result.displayName)
+                        }
+                      >
+                        <UserPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Connections List */}
+            {/* Connections List */}
+            <div className="space-y-1">
               {loading ? (
                 Array(3)
                   .fill(0)
@@ -497,23 +540,38 @@ export default function ConnectionsPage() {
                     }`}
                     onClick={() => setSelectedConnection(connection)}
                   >
-                    <Avatar>
-                      <AvatarImage
-                        src={connection.photoURL || ""}
-                        alt={connection.displayName}
-                      />
-                      <AvatarFallback>
-                        {connection.displayName.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar>
+                        <AvatarImage
+                          src={connection.photoURL || ""}
+                          alt={connection.displayName}
+                        />
+                        <AvatarFallback>
+                          {connection.displayName.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {/* <span
+                        className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
+                          connection.status === "online" ? "bg-green-500" : "bg-gray-400"
+                        }`}
+                      /> */}
+                    </div>
                     <div className="flex-1 overflow-hidden">
                       <p className="font-medium">{connection.displayName}</p>
-                      {connection.lastMessage && (
-                        <p className="truncate text-sm text-muted-foreground">
-                          {connection.lastMessage}
-                        </p>
-                      )}
+                      <p className="truncate text-sm text-muted-foreground">
+                        {connection.lastMessage}
+                      </p>
                     </div>
+                    <span className="text-xs text-muted-foreground">
+                      {connection.lastMessageTime
+                        ? new Date(
+                            connection.lastMessageTime
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : ""}
+                    </span>
                   </div>
                 ))
               ) : (
@@ -524,81 +582,167 @@ export default function ConnectionsPage() {
                   </p>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle>
-                {selectedConnection ? selectedConnection.displayName : "Chat"}
-              </CardTitle>
+        {/* Chat and Recommendations */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Chat Section */}
+          <Card>
+            <CardHeader className="border-b pb-3">
+              {selectedConnection && (
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Avatar>
+                      <AvatarImage
+                        src={selectedConnection.photoURL || ""}
+                        alt={selectedConnection.displayName}
+                      />
+                      <AvatarFallback>
+                        {selectedConnection.displayName.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {/* <span
+                      className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
+                        selectedConnection.status === "online" ? "bg-green-500" : "bg-gray-400"
+                      }`}
+                    /> */}
+                  </div>
+                  <div>
+                    <CardTitle>{selectedConnection.displayName}</CardTitle>
+                    {/* <p className="text-xs text-muted-foreground">
+                      {selectedConnection.status === "online" ? "Online" : "Offline"}
+                    </p> */}
+                  </div>
+                </div>
+              )}
             </CardHeader>
-            <CardContent className="flex h-[500px] flex-col">
-              <div className="flex-1 space-y-4 overflow-y-auto p-4">
-                {selectedConnection ? (
-                  chatMessages.length > 0 ? (
-                    chatMessages.map((msg) => {
-                      const isCurrentUser = msg.userId === user?.uid;
-                      return (
-                        <div
-                          key={msg.id}
-                          className={`flex ${
-                            isCurrentUser ? "justify-end" : "justify-start"
-                          }`}
-                        >
-                          <div
-                            className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                              isCurrentUser
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted"
-                            }`}
-                          >
-                            <p className="text-sm">{msg.message}</p>
-                            <p className="mt-1 text-xs opacity-70">
-                              {new Date(msg.sentAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })
+            <CardContent className="p-0">
+              <div className="flex h-[400px] flex-col">
+                {/* Chat Messages */}
+                <div className="flex-1 overflow-y-auto p-4">
+                  {selectedConnection ? (
+                    chatMessages.length > 0 ? (
+                      <div className="space-y-4">
+                        {chatMessages.map((msg) => {
+                          const isCurrentUser = msg.userId === user?.uid;
+                          return (
+                            <div
+                              key={msg.id}
+                              className={`flex ${
+                                isCurrentUser ? "justify-end" : "justify-start"
+                              }`}
+                            >
+                              <div
+                                className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                                  isCurrentUser
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted"
+                                }`}
+                              >
+                                <p className="text-sm">{msg.message}</p>
+                                <p className="mt-1 text-xs opacity-70">
+                                  {new Date(msg.sentAt).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div ref={messagesEndRef} />
+                      </div>
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <p className="text-muted-foreground">
+                          No messages yet. Start a conversation!
+                        </p>
+                      </div>
+                    )
                   ) : (
                     <div className="flex h-full items-center justify-center">
                       <p className="text-muted-foreground">
-                        No messages yet. Start a conversation!
+                        Select a connection to start chatting
                       </p>
                     </div>
-                  )
+                  )}
+                </div>
+
+                {/* Message Input */}
+                <div className="border-t p-4">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Type your message..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="flex-1"
+                      disabled={!selectedConnection}
+                    />
+                    <Button
+                      size="icon"
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim() || !selectedConnection}
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recommended Connections */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recommended Connections</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {suggestedUsers.length > 0 ? (
+                  suggestedUsers.map((connection) => (
+                    <div
+                      key={connection.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-accent/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage
+                            src={connection.avatar || ""}
+                            alt={connection.name}
+                          />
+                          <AvatarFallback>
+                            {connection.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{connection.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Also participated in {connection.event}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() =>
+                          handleAddConnection(connection.id, connection.name)
+                        }
+                      >
+                        <UserPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
                 ) : (
-                  <div className="flex h-full items-center justify-center">
+                  <div className="col-span-2 text-center p-4">
                     <p className="text-muted-foreground">
-                      Select a connection to start chatting
+                      Loading recommendations...
                     </p>
                   </div>
                 )}
-                <div ref={messagesEndRef} />
               </div>
-
-              {selectedConnection && (
-                <div className="mt-4 flex items-center gap-2">
-                  <Input
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type your message..."
-                    className="flex-1"
-                  />
-                  <Button
-                    size="icon"
-                    onClick={handleSendMessage}
-                    disabled={!newMessage.trim()}
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>

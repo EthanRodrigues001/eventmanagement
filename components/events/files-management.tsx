@@ -199,7 +199,7 @@ export function FilesManagement({ eventId }: FilesManagementProps) {
                   eventId,
                   filename: file.name,
                   fileId: file.key,
-                  fileUrl: file.url,
+                  fileUrl: file.ufsUrl,
                   fileType: file.type || "image",
                   uploadedBy: "user123", // Replace with actual user ID
                   createdAt: serverTimestamp(),

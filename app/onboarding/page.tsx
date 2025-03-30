@@ -63,7 +63,7 @@ export default function OnboardingPage() {
         description: "Your profile has been successfully updated.",
       });
 
-      router.push("/dashboard");
+      router.push("/events");
     } catch (error) {
       console.error("Error updating profile:", error);
       toast.error("Error", {

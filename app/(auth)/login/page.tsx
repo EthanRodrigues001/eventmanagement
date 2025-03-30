@@ -24,7 +24,7 @@ export default function LoginPage() {
       if (!user.onboardingCompleted) {
         router.push("/onboarding");
       } else {
-        router.push("/dashboard");
+        router.push("/my-events");
       }
     }
   }, [user, router]);

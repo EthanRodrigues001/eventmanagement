@@ -1,13 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server";
-
 import { getFirestore } from "firebase-admin/firestore";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const eventId = params.id;
+    const eventId = context.params.id;
 
     if (!eventId) {
       return NextResponse.json({ error: "Missing event ID" }, { status: 400 });
@@ -63,11 +62,11 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     const { searchParams } = new URL(request.url);
-    const eventId = params.id;
+    const eventId = context.params.id;
     const userId = searchParams.get("userId");
     if (!userId) {
       return NextResponse.json({ error: "Missing user ID" }, { status: 400 });

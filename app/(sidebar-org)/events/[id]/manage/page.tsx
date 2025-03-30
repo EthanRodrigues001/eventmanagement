@@ -36,7 +36,10 @@ import { EVENT_CATEGORIES } from "@/lib/types";
 import { PublishButton } from "@/components/events/event-publish-button";
 import { SponsorsManagement } from "@/components/events/sponsors-management";
 import { WinnersManagement } from "@/components/events/winners-management";
-import { Trophy, Image } from "lucide-react";
+import { TaskManagement } from "@/components/events/task-management";
+import { ParticipantsManagement } from "@/components/events/participants-management";
+import { FilesManagement } from "@/components/events/files-management";
+import { Trophy, Image, ListTodo, UserPlus, FileText } from "lucide-react";
 
 export default function EventManagePage() {
   const params = useParams();
@@ -283,7 +286,7 @@ export default function EventManagePage() {
       </div>
 
       <Tabs defaultValue={defaultTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-9">
           <TabsTrigger value="details" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Details</span>
@@ -307,6 +310,18 @@ export default function EventManagePage() {
           <TabsTrigger value="winners" className="flex items-center gap-2">
             <Trophy className="h-4 w-4" />
             <span className="hidden sm:inline">Winners</span>
+          </TabsTrigger>
+          <TabsTrigger value="tasks" className="flex items-center gap-2">
+            <ListTodo className="h-4 w-4" />
+            <span className="hidden sm:inline">Tasks</span>
+          </TabsTrigger>
+          <TabsTrigger value="participants" className="flex items-center gap-2">
+            <UserPlus className="h-4 w-4" />
+            <span className="hidden sm:inline">Participants</span>
+          </TabsTrigger>
+          <TabsTrigger value="files" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Files</span>
           </TabsTrigger>
         </TabsList>
 
@@ -472,6 +487,17 @@ export default function EventManagePage() {
 
         <TabsContent value="winners" className="mt-6">
           <WinnersManagement eventId={eventId || ""} />
+        </TabsContent>
+
+        <TabsContent value="tasks" className="mt-6">
+          <TaskManagement eventId={eventId || ""} />
+        </TabsContent>
+
+        <TabsContent value="participants" className="mt-6">
+          <ParticipantsManagement eventId={eventId || ""} />
+        </TabsContent>
+        <TabsContent value="files" className="mt-6">
+          <FilesManagement eventId={eventId || ""} />
         </TabsContent>
       </Tabs>
     </div>

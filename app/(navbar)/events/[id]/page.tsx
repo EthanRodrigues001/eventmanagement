@@ -25,6 +25,7 @@ import {
 import { db } from "@/lib/auth/firebase";
 import { EventChatbot } from "@/components/events/event-chatbot";
 import { EventComments } from "@/components/events/event-comments";
+import { FaceSearch } from "@/components/events/face-search";
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -648,6 +649,9 @@ export default function EventDetailPage() {
       {/* Comments Section */}
       <div className="container mx-auto px-4 py-6">
         <EventComments eventId={eventId || ""} />
+      </div>
+      <div className="container mx-auto px-4 py-6">
+        <FaceSearch eventId={eventId || ""} />
       </div>
     </div>
   );

@@ -4,6 +4,10 @@ The **Event Management Website** is a powerful, modern web application built wit
 
 Firebase provides a robust backend for authentication and real-time database management, UploadThing simplifies file uploads, and Gemini AI enhances the experience with AI-driven features.
 
+## Youtube Demo Video
+
+[Event Management Website Demo Video](https://www.youtube.com/watch?v=mQ5MvmtQ_q8&ab_channel=EthanRodrigues)
+
 ## Getting Started
 
 First, install dependencies:

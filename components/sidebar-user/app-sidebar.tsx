@@ -42,11 +42,15 @@ const data = {
   ],
   navMain: [
     {
-      title: "My Events",
+      title: "User Dashboard",
       url: "/my-events",
       icon: CalendarFold,
       isActive: true,
       items: [
+        {
+          title: "My Events",
+          url: "/my-events",
+        },
         {
           title: "Achievements",
           url: "/my-events/achievements",

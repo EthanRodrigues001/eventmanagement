@@ -6,17 +6,20 @@ import { toast } from "sonner";
 import { Globe, EyeOff } from "lucide-react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/auth/firebase";
+import { cn } from "@/lib/utils";
 
 interface PublishButtonProps {
   eventId: string;
   isPublished: boolean;
   onPublishChange?: (isPublished: boolean) => void;
+  className?: string;
 }
 
 export function PublishButton({
   eventId,
   isPublished,
   onPublishChange,
+  className,
 }: PublishButtonProps) {
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -55,7 +58,7 @@ export function PublishButton({
       variant={isPublished ? "outline" : "default"}
       onClick={handleTogglePublish}
       disabled={isUpdating}
-      className="gap-2"
+      className={cn("gap-2", className)}
     >
       {isPublished ? (
         <>

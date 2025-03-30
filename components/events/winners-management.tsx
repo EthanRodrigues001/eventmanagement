@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Trophy, Plus, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/context/AuthContext";
+
 import {
   collection,
   query,
@@ -43,7 +43,6 @@ interface WinnersManagementProps {
 }
 
 export function WinnersManagement({ eventId }: WinnersManagementProps) {
-  const { user } = useAuth();
   const [winners, setWinners] = useState<Winner[]>([]);
   const [participants, setParticipants] = useState<
     {
@@ -73,15 +72,16 @@ export function WinnersManagement({ eventId }: WinnersManagementProps) {
       const winnersData: Winner[] = [];
       const userPromises: Promise<void>[] = [];
 
-      winnersSnapshot.forEach((doc) => {
-        const data = doc.data();
+      winnersSnapshot.forEach((winnerDoc) => {
+        // Renamed `doc` to `winnerDoc`
+        const data = winnerDoc.data();
 
         userPromises.push(
           getDoc(doc(db, "users", data.userId)).then((userDoc) => {
             if (userDoc.exists()) {
               const userData = userDoc.data();
               winnersData.push({
-                id: doc.id,
+                id: winnerDoc.id, // Use `winnerDoc.id` for the document ID
                 eventId: data.eventId,
                 userId: data.userId,
                 position: data.position,
@@ -123,15 +123,15 @@ export function WinnersManagement({ eventId }: WinnersManagementProps) {
       }[] = [];
       const userPromises: Promise<void>[] = [];
 
-      participantsSnapshot.forEach((doc) => {
-        const data = doc.data();
+      participantsSnapshot.forEach((participantDoc) => {
+        const data = participantDoc.data();
 
         userPromises.push(
           getDoc(doc(db, "users", data.userId)).then((userDoc) => {
             if (userDoc.exists()) {
               const userData = userDoc.data();
               participantsData.push({
-                id: doc.id,
+                id: participantDoc.id,
                 userId: data.userId,
                 displayName:
                   (userData as { displayName?: string }).displayName ||
@@ -333,11 +333,12 @@ export function WinnersManagement({ eventId }: WinnersManagementProps) {
                         />
                       ) : null}
                       <AvatarFallback>
-                        {winner.displayName
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase()}
+                        {winner.displayName ||
+                          "Unknown"
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div>

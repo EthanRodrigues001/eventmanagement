@@ -30,6 +30,10 @@ export function ToggleRegistrationsButton({
         updatedAt: new Date(),
       });
 
+      if (onToggle) {
+        onToggle(!registrationsOpen);
+      }
+
       toast.success(
         !registrationsOpen ? "Registrations Opened" : "Registrations Closed",
         {

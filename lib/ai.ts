@@ -4,7 +4,7 @@ import { LoadAPIKeyError } from "ai";
 
 import { z } from "zod";
 
-// type SocialPlatform = "instagram" | "twitter" | "facebook"
+type SocialPlatform = "instagram" | "twitter" | "linkedin";
 type TaskCategory = "PR" | "marketing" | "logistics" | "technical";
 
 const gemini = createGoogleGenerativeAI({
@@ -113,4 +113,87 @@ export async function generateEventTasks(
     console.error("Error parsing AI-generated tasks:", error);
     return [];
   }
+}
+
+export async function generateSocialPost(
+  eventData: {
+    title: string;
+    description: string;
+    startDate: Date;
+    location: string;
+  },
+  platform: SocialPlatform
+) {
+  const platformInfo: Record<SocialPlatform, { limit: number; style: string }> =
+    {
+      instagram: {
+        limit: 2200,
+        style: "visual, engaging, with relevant hashtags",
+      },
+      twitter: {
+        limit: 280,
+        style: "concise, catchy, with 1-2 hashtags",
+      },
+      linkedin: {
+        limit: 5000,
+        style: "informative, engaging, with a clear call to action",
+      },
+    };
+
+  const { text } = await generateText({
+    model: gemini("gemini-1.5-flash"),
+    prompt: `Create a ${platform} post for a college event with the following details:
+      - Event Title: ${eventData.title}
+      - Description: ${eventData.description}
+      - Date: ${eventData.startDate.toLocaleDateString()}
+      - Location: ${eventData.location}
+      
+      Make it ${platformInfo[platform].style}. Keep it under ${
+      platformInfo[platform].limit
+    } characters.
+      Include appropriate emojis and formatted text for the platform.`,
+  });
+
+  return text;
+}
+
+export async function generateSocialPostUser(
+  eventData: {
+    eventTitle: string;
+    position: string;
+    eventDate: string;
+  },
+  platform: SocialPlatform
+) {
+  const platformInfo: Record<SocialPlatform, { limit: number; style: string }> =
+    {
+      instagram: {
+        limit: 2200,
+        style: "visual, engaging, with relevant hashtags",
+      },
+      twitter: {
+        limit: 280,
+        style: "concise, catchy, with 1-2 hashtags",
+      },
+      linkedin: {
+        limit: 3000,
+        style:
+          "professional, reflective, with a clear message about the achievement",
+      },
+    };
+  const prompt = `Create a ${platform} post about winning an award at a college event with the following details:
+        - Event Title: ${eventData.eventTitle}
+        - Position/Award: ${eventData.position}
+        - Date: ${eventData.eventDate}
+        
+        Make it ${platformInfo[platform].style}. Keep it under ${platformInfo[platform].limit} characters.
+        Include appropriate emojis and formatted text for the platform.
+        The tone should be proud but not boastful, grateful, and excited.
+        Include a brief mention of what you learned or gained from the experience.`;
+
+  const { text } = await generateText({
+    model: gemini("gemini-1.5-flash"),
+    prompt,
+  });
+  return text;
 }

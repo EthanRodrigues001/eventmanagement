@@ -1,4 +1,4 @@
-# Event Management Website
+# Event Management App
 
 The **Event Management Website** is a powerful, modern web application built with **Next.js**, designed to streamline event planning and management. With seamless integrations of **Firebase**, **UploadThing**, and **Gemini AI**, this platform allows users to create, manage, and enhance their event experiences efficiently.
 
